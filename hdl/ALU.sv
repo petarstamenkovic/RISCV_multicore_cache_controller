@@ -8,7 +8,6 @@ module ALU
 );
 
     always_comb begin
-		//C = 'b0;
 		case (alu_op)
 		    0:  C = A + B;
 		    1:  C = A << B;

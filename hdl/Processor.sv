@@ -11,8 +11,7 @@ module Processor #
     input logic [31:0] bus_data_in,
     input logic [31:0] bus_address_in,
     input logic [ 1:0] bus_operation_in, //BusRD == 2'00, BusUpgr == 2'b01, BusRdX == 2'b10
-    
-    // data will go to the shared bus
+
     output logic [31:0] data_to_L2,
     output logic [31:0] bus_data_out, 
     output logic [31:0] bus_address_out,

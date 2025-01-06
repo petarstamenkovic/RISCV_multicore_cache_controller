@@ -37,14 +37,14 @@ module Controller
     			rd_en = 0;
     			wb_sel = 0;
 				case (func3)
-					3'b000: begin if (func7 == 7'b0100000) alu_op = 9; else alu_op = 0; end                                                   //sub, add
-					3'b001:	alu_op = 1;													  //sll
-					3'b010:	alu_op = 2;													  //slt
-					3'b011:	alu_op = 3;                                                      						  //sltu
-					3'b100:	alu_op = 4;													  //xor
-					3'b101: begin if (func7 == 7'b0100000) alu_op = 6; else alu_op = 5; end 						  //sra, srl
-					3'b110:	alu_op = 7;												          //or
-					3'b111:	alu_op = 8;       												  //and
+					3'b000: begin if (func7 == 7'b0100000) alu_op = 9; else alu_op = 0; end  //sub, add
+					3'b001:	alu_op = 1;													     //sll
+					3'b010:	alu_op = 2;													     //slt
+					3'b011:	alu_op = 3;                                                      //sltu
+					3'b100:	alu_op = 4;													     //xor
+					3'b101: begin if (func7 == 7'b0100000) alu_op = 6; else alu_op = 5; end  //sra, srl
+					3'b110:	alu_op = 7;												         //or
+					3'b111:	alu_op = 8;       												 //and
 				endcase
 			end
 			7'b0010011: begin	// I-type instructions
@@ -54,14 +54,14 @@ module Controller
     			rd_en = 0;
     			wb_sel = 0;
 				case (func3)
-					3'b000: alu_op = 0;													  //addi
-					3'b001:	alu_op = 1;						                              				  //slli 
-					3'b010:	alu_op = 2;													  //slti
-					3'b011:	alu_op = 3;													  //sltiu
-					3'b100:	alu_op = 4;													  //xori
-					3'b101: begin if (func7 == 7'b0000010) alu_op = 6; else alu_op = 5; end    				  		  //srai, srli
-					3'b110:	alu_op = 7;													  //ori
-					3'b111:	alu_op = 8; 													  //andi
+					3'b000: alu_op = 0;													    //addi
+					3'b001:	alu_op = 1;						                                //slli 
+					3'b010:	alu_op = 2;													    //slti
+					3'b011:	alu_op = 3;													    //sltiu
+					3'b100:	alu_op = 4;													    //xori
+					3'b101: begin if (func7 == 7'b0000010) alu_op = 6; else alu_op = 5; end //srai, srli
+					3'b110:	alu_op = 7;													    //ori
+					3'b111:	alu_op = 8; 													//andi
 				endcase
 			end
 			7'b0000011: begin	// Load instructions

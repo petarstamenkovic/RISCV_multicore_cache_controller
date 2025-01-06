@@ -147,7 +147,6 @@ module top
         
         .opcode_in(opcode_from_bus),
         .opcode_out(opcode_to_dmem),
-        //.bus_operation_in(),
         
         .data_from_dmem(data_from_dmem),
         .bus_data_in(data_to_L2),

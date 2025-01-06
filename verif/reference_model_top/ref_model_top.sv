@@ -111,27 +111,6 @@ module ref_model_top
     state_t state, next_state;
 	logic [31:0] flopped_data_from_dmem[3:0];
 
-	/*
-	always_ff @(negedge clk) begin
-		if(reset) begin
-			flopped_data_from_dmem[0] = 0;
-			flopped_data_from_dmem[1] = 0;
-			flopped_data_from_dmem[2] = 0;
-			flopped_data_from_dmem[3] = 0;
-		end
-		else begin 
-			if(top.cpu1.controller_and_cache.cache_hit == 2'b01 && top.bus_ctrl.cache_hit_out1 == 2'b11 && top.cpu1.controller_and_cache.mask_in == 3'b010 && top.cache_L2.flush == 0) begin 
-				flopped_data_from_dmem[0] <= top.dmem.memory[top.dmem.addr];
-			end
-			else if(state == WAIT && top.cpu1.controller_and_cache.cache_hit == 2'b10 && top.cache_L2.flush == 0) begin
- 				flopped_data_from_dmem[1] <= flopped_data_from_dmem[0];
-			end
-
-			flopped_data_from_dmem[2] <= flopped_data_from_dmem[1]; 
-		end
-	end 
-	*/
-
 	always_ff @(negedge clk) begin
 		if(reset) begin
 			flopped_data_from_dmem[0] = 0;

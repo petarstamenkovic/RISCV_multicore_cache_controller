@@ -11,12 +11,10 @@ module BranchCondition
 	logic branch, jump;
 	
 	always_comb begin
-		//jump = 'b0;
 		if (opcode == 7'b1101111) jump = 1; else jump = 0;
 	end
 	
 	always_comb begin
-		//branch = 'b0;
 		if (opcode == 7'b1100011) begin
 			case (br_type)
 				3'b000: begin 

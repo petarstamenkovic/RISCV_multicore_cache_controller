@@ -31,9 +31,6 @@ module bus_controller
     output logic [23:0] tag_to_L2_out,
     output logic [31:0] address_to_L2,
     //------------------------------------------------
-    //input  logic [31:0] data_from_dmem, 
-    //output logic [31:0] address_to_dmem,
-    //------------------------------------------------
     input logic cache_hit_in1,
     input logic cache_hit_in2,
     
@@ -98,12 +95,10 @@ module bus_controller
         bus_data_out1      = 'b0;
         bus_address_out1   = 'b0;
         bus_operation_out1 = 2'b11;
-        //bus_operation_out1 = 'b0;
     
         bus_data_out2       = 'b0;
         bus_address_out2    = 'b0;
         bus_operation_out2  = 2'b11;
-        //bus_operation_out2 = 'b0;
         
         cache_hit_out1 = 2'b11;
         cache_hit_out2 = 2'b11;
@@ -116,13 +111,11 @@ module bus_controller
             bus_operation_out2    = bus_operation_in1;
             bus_address_out2      = bus_address_in1;
             address_to_L2         = bus_address_in1;
-            //data_to_L2_out        = data_to_L2_input;
             opcode_out            = opcode_in1; 
-            if(bus_operation_in1 != 2'b11 /*&& grant_core1*/) begin
+            if(bus_operation_in1 != 2'b11) begin
  
                 if(cache_hit_in2) begin
-                    bus_data_out1 = bus_data_in2;
-                    //bus_data_out2 = bus_data_in2;   
+                    bus_data_out1 = bus_data_in2;  
                     cache_hit_out1 = 2'b01;         // HIT IN L1 - CPU 2 
                 end 
                 else if(cache_hit_L2 == 2'b10 && !cache_hit_in2) begin
@@ -130,8 +123,7 @@ module bus_controller
                     cache_hit_out1 = 2'b10;         // HIT IN L2
                 end
                 else begin
-                    bus_data_out1 = 'b0;
-                    //opcode_out    = opcode_in1;                
+                    bus_data_out1 = 'b0;               
                 end
             end
         end 
@@ -139,12 +131,10 @@ module bus_controller
             bus_operation_out1    = bus_operation_in2;
             bus_address_out1      = bus_address_in2;
             address_to_L2         = bus_address_in2;
-            //data_to_L2_out        = data_to_L2_input;
             opcode_out            = opcode_in2; 
             if(bus_operation_in2 != 2'b11) begin
 
                 if(cache_hit_in1) begin
-                    //bus_data_out1 = bus_data_in1;
                     bus_data_out2 = bus_data_in1;
                     cache_hit_out2 = 2'b01;         // HIT IN L1 - CPU 1
                 end 
@@ -154,7 +144,6 @@ module bus_controller
                 end
                 else begin
                     bus_data_out2 = 'b0;                
-                    //opcode_out    = opcode_in2;
                 end
             end
         end
@@ -171,8 +160,5 @@ module bus_controller
             tag_to_L2_out  = tag_to_L2_in;
         end
     end
-    
-    //CODE FOR FLUSH
-    //
-    //
+
 endmodule

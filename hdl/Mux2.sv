@@ -8,7 +8,6 @@ module Mux2
 );
 	
 	always_comb begin
-		//C = 'b0;
 		if (sel) C = B;
 		else C = A;
 	end

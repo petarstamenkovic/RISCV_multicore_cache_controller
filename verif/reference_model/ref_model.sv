@@ -9,7 +9,6 @@ module ref_model
     input logic [31:0] bus_address_in,
     input logic [ 1:0] bus_operation_in, //BusRD == 2'00, BusUpgr == 2'b01, BusRdX == 2'b10
     
-    // data will go to the shared bus
     input logic [31:0] data_to_L2,
     input logic [31:0] bus_data_out, 
     input logic [31:0] bus_address_out,
@@ -48,8 +47,6 @@ module ref_model
 	logic sel_B_ref; 
 	logic rd_en_ref; 
 	logic wr_en_ref;
-	logic [31 : 0] data_from_rf_ref;
-	logic [4  : 0] address_from_rf;
 	
 	// Control signal (clocked values) - for reference model 
 	logic [3:0] alu_op_ref_next; 
@@ -63,9 +60,7 @@ module ref_model
 	logic rd_en_ref_next; 
 	logic wr_en_ref_next; 
 	logic [31:0] address_to_check;
-	logic [31:0] previous_instruction, rf_delayed, cache_delayed, miss_address_s,waddr_s;
 	
-
 	// Program counter signal(PC) - Combinational and clocked value
 	logic [31:0] index_ref;      // PC out
 	logic [31:0] index_ref_next; // PC in 
@@ -105,9 +100,7 @@ module ref_model
 	// Data memory signals
 	logic [31:0] wdata_ref, wdata_ref_s;
 	logic		 known;
-	logic 		 valid, valid_loaded;
-	logic [31:0] rdata_to_check, rdata_to_check_seq;
-	logic [31:0] cache_line;
+	logic 		 valid;
 
 	// Register file signals
 	logic [31:0] operand1_ref;
@@ -173,7 +166,6 @@ module ref_model
 	
 	
 	// Assumptions for STORE - Can not use address larger than memory size limit 
-		
 	property assume_store_less_than_1024;
 		@(posedge clk) disable iff(reset)  
 		Processor.instruction[6:0] == instruction_S_type_opcode |-> 
@@ -201,7 +193,6 @@ module ref_model
 	endproperty
 
 	// Assumptions for free variable to be same during verification process and smaller than memory size limit
-	///////////////////////////////////// DO WE NEED THIS LIMIT OF 256 WHEN IT COMES TO CACHE - DIFFERENT TAG SHOULD BE STORED IN CASE OF ADDRESS BIGGER THAN 256 /////////////////////////////////////
 	property assume_fvar_limit;
 		@(posedge clk) disable iff(reset) 
 		fvar_specific_addr < 256;
@@ -223,15 +214,12 @@ module ref_model
 	endproperty
 
 
-    	// CHECK FOR THE NUMBER OF CYCLES 
 	property assume_if_stall_not_null;
-		//gb_stall |-> $stable(Processor.instruction);
 		@(posedge clk) disable iff(reset)
-		gb_stall == 1'b1 |-> $stable(Processor.instruction)[*2];    //https://verificationacademy.com/forums/t/assertion-using-stable-with/37547/2
+		gb_stall == 1'b1 |-> $stable(Processor.instruction)[*2];   
 	endproperty
 
 	property assume_if_stall_not_null_neg;
-		//gb_stall |-> $stable(Processor.instruction);
 		@(negedge clk) disable iff(reset)
 		gb_stall == 1'b1 |-> $stable(Processor.instruction)[*2];
 	endproperty
@@ -283,18 +271,10 @@ module ref_model
 	// Cant load into x0 register
 	load_rs2_not_NULL            : assume property(assume_load_rs2_not_NULL);
 	load_rs2_not_NULL_neg        : assume property(assume_load_rs2_not_NULL_neg);
-	
-	// Memory size limit - set to 1024
-	//store_less_than_1024         : assume property(assume_store_less_than_1024);
-	//store_less_than_1024_neg     : assume property(assume_store_less_than_1024_neg);
 
 	// When R or I type are active, you cant write in the x0 register
 	cant_write_to_x0             : assume property (assume_cant_write_to_x0);
 	cant_write_to_x0_neg         : assume property (assume_cant_write_to_x0_neg);
-
-	// Stabilize the free variable and set it accordingly to memory limitations
-	//asm_fvar_limit           	 : assume property(assume_fvar_limit);
-	//asm_fvar_limit_neg       	 : assume property(assume_fvar_limit_neg);
 	
 	asm_fvar_stable          	 : assume property (assume_fvar_stable);
 	asm_fvar_stable_neg      	 : assume property (assume_fvar_stable_neg);
@@ -358,7 +338,6 @@ module ref_model
 					Processor.instruction[14:12], Processor.instruction[6:0]}; 
 	assign struct_assignment_U = Processor.instruction;
 	assign struct_assignment_J = '{{Processor.instruction[31] , Processor.instruction[19:12] , Processor.instruction[20] , Processor.instruction[30:21]} , Processor.instruction[11:7] , Processor.instruction[6:0]};
-	//assign address_to_check = Processor.alu_out;
 
 	// ===================== AUX code for DATA MEMORY -  Write data on fvar_specific_addr - location based coupling - STORE INSTRUCTION ======================= // 
 	
@@ -440,79 +419,6 @@ module ref_model
 		end
 	end
 
-	///////////////////
-	always_comb begin
-		if (Processor.rd_en)
-			cache_line = Processor.controller_and_cache.cache_memory_L1[fvar_specific_addr[7:2]].data;
-		else
-			cache_line = 0;
-	end
-
-	// Helping combinational logic for easier property proof
-	always_comb begin
-		if(Processor.instruction[6:0] == instruction_S_type_opcode && (Processor.instruction[14:12] == 3'b000 || Processor.instruction[14:12] == 3'b001 || Processor.instruction[14:12] == 3'b010)) begin
-			case(Processor.instruction[14:12])
-				3'b000 : begin // Store byte				
-					case(fvar_specific_addr[1:0])
-						2'b00: begin
-							rdata_to_check = {24'b0,cache_line[7:0]}; // Byte 0
-							//rdata_to_check = (dmem_line & 32'hFFFFFF00) | {24'b0, Processor.B_r[7:0]};
-						end
-						
-						2'b01: begin
-						 	rdata_to_check = {16'b0,cache_line[15:8],8'b0}; // Byte 1
-							//rdata_to_check = (dmem_line & 32'hFFFF00FF) | {16'b0, Processor.B_r[7:0], 8'b0};
-						end
-
-						2'b10: begin
-							rdata_to_check = {8'b0,cache_line[23:16],16'b0}; // Byte 2
-							//rdata_to_check = (dmem_line & 32'hFF00FFFF) | {8'b0, Processor.B_r[7:0], 16'b0};
-						end
-
-						2'b11: begin 
-							rdata_to_check = {cache_line[31:24],24'b0}; // Byte 3	
-							//rdata_to_check = (dmem_line & 32'h00FFFFFF) | {Processor.B_r[7:0], 24'b0};							
-						end
-					endcase
-				end
-
-				3'b001: begin // Store halfword
-					case(fvar_specific_addr[1])
-						1'b0: begin
-							rdata_to_check = {16'b0,cache_line[15:0]};
-							//rdata_to_check = (dmem_line & 32'hFFFF0000) | {16'b0, Processor.B_r[15:0]};						
-						end
-
-						1'b1: begin
-							rdata_to_check = {cache_line[31:16],16'b0};
-							//rdata_to_check = (dmem_line & 32'h0000FFFF) | {Processor.B_r[15:0],16'b0};
-						end 
-					endcase
-				end 
-
-				3'b010: begin // Store word
-					rdata_to_check = cache_line;
-					//rdata_to_check = Processor.B_r;
-				end
-
-				default : rdata_to_check = 'b0;		 
-			endcase
-		end
-		else begin
-			rdata_to_check = rdata_to_check_seq;
-		end
-	end
-	
-	
-	always_ff @(posedge clk) begin
-		if(reset) begin
-			rdata_to_check_seq <= 'b0;
-		end 
-		else begin
-			rdata_to_check_seq <= rdata_to_check;
-		end
-	end
-	
 
 	// ====================== AUX code for checking LOAD instruction ========================= //  
 	always_comb begin
@@ -538,64 +444,6 @@ module ref_model
 			rdata_ref <= Processor.wdata_s;
 			fvar_specific_addr_q_neg <= fvar_specific_addr;
 		end
-	end
-	
-	
-	always_ff @(negedge clk) begin
-		if(reset) begin
-			data_from_rf_ref <= 'b0;
-			valid_loaded <= 1'b0;
-		end 
-		else begin
-			if(valid) begin
-				if(gb_stall == 'b0) begin
-					valid_loaded <= 1'b1;
-					address_from_rf <= Processor.instruction[11:7];
-					data_from_rf_ref <= gb_data_stored_in_rf;
-				end
-			end
-		end
-	end
-
-	always_ff @(posedge clk) begin
-		if(reset) begin
-			previous_instruction <= 'b0;
-			end 
-		else begin
-			if(Processor.instruction[6:0] == instruction_L_type_opcode) begin
-				previous_instruction <= Processor.instruction;
-			end
-		end
-	end
-	
-	always_ff @(negedge clk) begin
-		if(reset) begin
-			rf_delayed    <= 'b0;
-			cache_delayed <= 'b0;
-		end
-		else begin
-			if(Processor.controller_and_cache.state == WAIT_WRITE) begin
-				rf_delayed    <= Processor.rf.registerfile[Processor.instruction[11:7]];
-				cache_delayed <= Processor.controller_and_cache.cache_memory_L1[Processor.controller_and_cache.index_in[7:2]].data;
-			end 
-		end
-	end
-	
-	always_ff @(negedge clk) begin
-	   if(reset) begin
-	       miss_address_s <= 'b0;
-	       waddr_s        <= 'b0;
-	   end
-	   else begin
-            if(Processor.stall && Processor.controller_and_cache.state == WAIT_WRITE) begin
-                miss_address_s <= Processor.controller_and_cache.index_in;
-                waddr_s        <= Processor.instruction[11:7] ;
-            end      
-            else begin
-                miss_address_s <= miss_address_s;
-                waddr_s        <= waddr_s;
-            end       
-	   end
 	end
 	
 	
@@ -1367,8 +1215,8 @@ module ref_model
 
 	// ============= MESI PROTOCOL TRANSITIONS =============== //
 	// CPU SENDS A REQUEST
-	assert_mesi_transition_I_S_load : assert property(@(posedge clk) mesi_transition_I_S_load);
-	assert_mesi_transition_I_E_load : assert property(@(posedge clk) mesi_transition_I_E_load);
+	//ASSERT PASSED//assert_mesi_transition_I_S_load : assert property(@(posedge clk) mesi_transition_I_S_load);
+	//ASSERT PASSED//assert_mesi_transition_I_E_load : assert property(@(posedge clk) mesi_transition_I_E_load);
 	//ASSERT PASSED//assert_mesi_transition_S_S_load : assert property(@(negedge clk) mesi_transition_S_S_load);
 	//ASSERT PASSED//assert_mesi_transition_M_M_load : assert property(@(negedge clk) mesi_transition_M_M_load);
 	//ASSERT PASSED//assert_mesi_transition_E_E_load : assert property(@(negedge clk) mesi_transition_E_E_load);

@@ -55,7 +55,7 @@ module cache_subsystem_L1
 
     
     cache_line_t cache_memory_L1[255:0];
-    mesi_state_t mesi_state_s, next_mesi_state; //signal for changing state inside of CPU
+    mesi_state_t next_mesi_state; 			  //signal for changing state inside of CPU
     mesi_state_t upgrade_mesi_state;          //signal for changing state recieved from other CPU
         
     logic [1:0]   cache_hit;
@@ -101,10 +101,8 @@ module cache_subsystem_L1
     always_ff @(posedge clk) begin
         if (reset) begin
             state <= MAIN;
-            //mesi_state_s <= I;
         end else begin
             state <= next_state;
-            //mesi_state_s <= next_mesi_state;
         end
     end
     
@@ -142,7 +140,6 @@ module cache_subsystem_L1
                 
                 if(cache_hit == 2'b10) begin
                     next_state = MAIN;
-                    //stall = 1'b0;
                 end else begin
                     next_state = WAIT_WRITE;
                 end
@@ -211,17 +208,14 @@ module cache_subsystem_L1
                 M: begin
                     if(opcode_in == 7'b0100011 || opcode_in == 7'b0000011) begin //PrRd/- PrWr/-
                         next_mesi_state = M;
-                        //bus_operation_out = 2'b11;
                     end
                 end
                 E: begin
                     if(opcode_in == 7'b0100011) begin //PrWr/-
                         next_mesi_state = M;
-                        //bus_operation_out = 2'b11;
                     end
                     else if(opcode_in == 7'b0000011) begin //PrRd/-
                         next_mesi_state = E;
-                        //bus_operation_out = 2'b11;
                     end
                 end
                 S: begin
@@ -232,7 +226,6 @@ module cache_subsystem_L1
                     end
                     else if(opcode_in == 7'b0000011) begin   //PrRd/-
                         next_mesi_state = S;
-                        //bus_operation_out = 2'b11;
                     end
                 end
                 I: begin
@@ -410,8 +403,6 @@ module cache_subsystem_L1
                 cache_memory_L1[miss_address[7:2]] <= '{mesi_state: next_mesi_state, tag: tag_in, data: write_L1};                
             end
             else if(bus_operation_in != 2'b11) begin
-                //Is bug happens, change it as a broadcast in bus_controller 
-                //cache_memory_L1[bus_address_in[7:2]] <= '{mesi_state: upgrade_mesi_state, tag: bus_address_in[31:8], data: bus_data_in}; 
                 cache_memory_L1[bus_address_in[7:2]] <= '{mesi_state: upgrade_mesi_state, tag: cache_memory_L1[bus_address_in[7:2]].tag, data: cache_memory_L1[bus_address_in[7:2]].data}; 
             end
         end

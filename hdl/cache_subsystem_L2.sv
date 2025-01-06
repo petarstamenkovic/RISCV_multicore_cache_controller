@@ -125,19 +125,19 @@ module cache_subsystem_L2(
         end 
         else begin
             if (flush == 1'b1) begin
-               // Oba su slobodna
+               //Both ways empty
                if(cache_memory_L2[set_index][0].valid == 0 && cache_memory_L2[set_index][1].valid == 0) begin 
-                    // Smesti na nulti way
+                    //Write to way0
                     cache_memory_L2[set_index][0].valid <= 1;
                     cache_memory_L2[set_index][0].lru   <= 0;   // Mark as recently used
                     cache_memory_L2[set_index][1].lru   <= 1;   // Mark Way 1 as least recently used
                     cache_memory_L2[set_index][0].data  <= bus_data_in;
                     cache_memory_L2[set_index][0].tag   <= bus_tag_in[23:1];
                end
-               // Nulti je zauzet - Prvi je slobodan
+               //Way0 is occupied - Way1 is empty
                else if(cache_memory_L2[set_index][0].valid == 1 && cache_memory_L2[set_index][1].valid == 0) begin
                     if(cache_memory_L2[set_index][0].tag != bus_tag_in[23:1]) begin
-                        // Smesti na prvi
+                        //Write to way1
                         cache_memory_L2[set_index][1].valid <= 1;
                         cache_memory_L2[set_index][1].lru   <= 0;   // Mark as recently used
                         cache_memory_L2[set_index][0].lru   <= 1;   // Mark Way 1 as least recently used
@@ -145,7 +145,7 @@ module cache_subsystem_L2(
                         cache_memory_L2[set_index][1].tag   <= bus_tag_in[23:1];
                     end
                     else begin
-                        // Smesti na nutli
+                        //Write to way0
                         cache_memory_L2[set_index][0].valid <= 1;
                         cache_memory_L2[set_index][0].lru   <= 0;   // Mark as recently used
                         cache_memory_L2[set_index][1].lru   <= 1;   // Mark Way 1 as least recently used
@@ -157,10 +157,10 @@ module cache_subsystem_L2(
                         opcode_out      <= 7'b0100011; 
                     end
                end
-               // Oba su zauzeta 
+               //Both ways occupied 
                else if(cache_memory_L2[set_index][0].valid == 1 && cache_memory_L2[set_index][1].valid == 1) begin 
                     if(cache_memory_L2[set_index][0].tag == bus_tag_in[23:1]) begin
-                        // Smesti na nulti i izbaci u DMEM
+                        //Write to way0 and flush to data memory
                         cache_memory_L2[set_index][0].data <= bus_data_in;
                         cache_memory_L2[set_index][0].lru  <= 0;
                         cache_memory_L2[set_index][1].lru  <= 1;
@@ -170,7 +170,7 @@ module cache_subsystem_L2(
                         opcode_out      <= 7'b0100011;
                     end
                     else if(cache_memory_L2[set_index][1].tag == bus_tag_in[23:1]) begin
-                        // Smesti na prvi i izbaci u DMEM
+                        //Write to way1 and flush to data memory
                         cache_memory_L2[set_index][1].data <= bus_data_in;
                         cache_memory_L2[set_index][1].lru  <= 0;
                         cache_memory_L2[set_index][0].lru  <= 1;
@@ -180,7 +180,7 @@ module cache_subsystem_L2(
                         opcode_out      <= 7'b0100011;
                     end
                     else if(cache_memory_L2[set_index][0].tag != bus_tag_in[23:1] && cache_memory_L2[set_index][1].tag != bus_tag_in[23:1]) begin
-                        // LRU - Smesti na onaj ciji je LRU 1 i izbaci u DMEM
+                        // LRU replacment - Write on a way that has LRU bit set to 0 and flush to data memory
                         if(cache_memory_L2[set_index][0].lru == 1) begin
                             cache_memory_L2[set_index][0].data <= bus_data_in;
                             cache_memory_L2[set_index][0].tag  <= bus_tag_in[23:1];
@@ -206,7 +206,7 @@ module cache_subsystem_L2(
             end 
             else if(state == DMEM_WRITE) begin 
                 if(cache_memory_L2[set_index][0].lru == 0 && cache_memory_L2[set_index][1].lru == 0) begin 
-                    // Smesti na nulti
+                    //Write to way0
                     cache_memory_L2[set_index][0].valid <= 1;
                     cache_memory_L2[set_index][0].tag   <= tag;
                     cache_memory_L2[set_index][0].data  <= data_from_dmem;
@@ -214,7 +214,7 @@ module cache_subsystem_L2(
                     cache_memory_L2[set_index][1].lru   <= 1; // Mark Way 1 as least recently used
                 end
                 else if(cache_memory_L2[set_index][0].lru == 1 && cache_memory_L2[set_index][1].lru == 0) begin 
-                    // Smesti na nulti i trenutni podatak upisi u DMEM
+                    ////Write to way0 and flush to data memory
                     cache_memory_L2[set_index][0].valid <= 1;
                     cache_memory_L2[set_index][0].data  <= data_from_dmem;
                     cache_memory_L2[set_index][0].tag   <= tag;
@@ -225,7 +225,7 @@ module cache_subsystem_L2(
                     opcode_out      <= 7'b0100011;   
                 end
                 else if(cache_memory_L2[set_index][1].lru == 1 && cache_memory_L2[set_index][0].lru == 0) begin 
-                    // Smesti na prvi i trenutni podatak upisi u DMEM
+                    ////Write to way1 and flush to data memory
                     cache_memory_L2[set_index][1].valid <= 1;
                     cache_memory_L2[set_index][1].data  <= data_from_dmem;
                     cache_memory_L2[set_index][1].tag   <= tag;

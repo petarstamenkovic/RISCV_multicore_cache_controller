@@ -82,7 +82,7 @@ endproperty
 property assume_if_stall_not_null_load_from_cpu2_to_cpu1;
 	@(posedge clk) disable iff(reset)
 	top.cpu1.controller_and_cache.stall == 1 || (top.cpu1.grant == 0 && top.cpu1.flush_out == 1) |-> 
-	$stable(top.cpu1.instruction)[*2];    //https://verificationacademy.com/forums/t/assertion-using-stable-with/37547/2
+	$stable(top.cpu1.instruction)[*2];    
 endproperty
 
 property assume_if_stall_not_null_load_from_cpu2_to_cpu1_neg;
@@ -94,7 +94,7 @@ endproperty
 property assume_if_stall_not_null_load_from_cpu1_to_cpu2;
 	@(posedge clk) disable iff(reset)
 	top.cpu2.controller_and_cache.stall == 1 || (top.cpu2.grant == 0 && top.cpu2.flush_out == 1)|-> 
-	$stable(top.cpu2.instruction)[*2];    //https://verificationacademy.com/forums/t/assertion-using-stable-with/37547/2
+	$stable(top.cpu2.instruction)[*2];   
 endproperty
 
 property assume_if_stall_not_null_load_from_cpu1_to_cpu2_neg;
@@ -139,7 +139,7 @@ property assume_funct3_L_type_opcode_neg_cpu1;
 	top.cpu1.instruction[14:12] inside {3'b000,3'b001,3'b010,3'b100,3'b101};
 endproperty
 
-	property assume_funct3_L_type_opcode_cpu2;
+property assume_funct3_L_type_opcode_cpu2;
 	@(posedge clk) disable iff(reset)
 	top.cpu2.instruction[6:0] == instruction_L_type_opcode |-> 
 	top.cpu2.instruction[14:12] inside {3'b000,3'b001,3'b010,3'b100,3'b101};
