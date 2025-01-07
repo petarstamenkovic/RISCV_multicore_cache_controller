@@ -106,108 +106,6 @@ module ref_model_top
 	assign gb_stall1 = top.cpu1.stall;
 	assign gb_stall2 = top.cpu2.stall;
 	
-	
-	typedef enum logic [1:0] {IDLE, WAIT, HIT} state_t;
-    state_t state, next_state;
-	logic [31:0] flopped_data_from_dmem[3:0];
-
-	always_ff @(negedge clk) begin
-		if(reset) begin
-			flopped_data_from_dmem[0] = 0;
-			flopped_data_from_dmem[1] = 0;
-			flopped_data_from_dmem[2] = 0;
-			flopped_data_from_dmem[3] = 0;
-		end
-		else begin 
-			if(top.cpu1.controller_and_cache.cache_hit == 2'b01 && top.bus_ctrl.cache_hit_out1 == 2'b11 && top.cpu1.controller_and_cache.mask_in == 3'b010 && top.cache_L2.flush == 0) begin 
-				flopped_data_from_dmem[0] <= top.dmem.memory[top.dmem.addr];
-			end
-			else begin
-				flopped_data_from_dmem[0] <= flopped_data_from_dmem[0];
-			end	
-
-			flopped_data_from_dmem[1] <= flopped_data_from_dmem[0];
-        	flopped_data_from_dmem[2] <= flopped_data_from_dmem[1];
-        	flopped_data_from_dmem[3] <= flopped_data_from_dmem[2];		
-
-		end
-	end 
-
-	logic [3:0] cnt;
-	logic [1:0] idle_cnt;
-	logic [4:0] flopped_rf_for_load_miss;
-    // AUX State machine for load miss in both L1 and L2
-    always_ff @(posedge clk) begin
-        if (reset) begin
-            state <= IDLE;
-			flopped_rf_for_load_miss <= 'b0;
-			cnt <= 0;
-			idle_cnt <= 0;
-        end else begin
-            state <= next_state;
-			if(top.cpu1.controller_and_cache.cache_hit == 2'b01 && top.bus_ctrl.cache_hit_out1 == 2'b11 && top.cpu1.controller_and_cache.mask_in == 3'b010 && top.cache_L2.flush == 0) begin 
-				flopped_rf_for_load_miss <= top.cpu1.instruction[11:7];
-			end
-			else begin 
-				flopped_rf_for_load_miss <= flopped_rf_for_load_miss;
-			end
-
-			if(state == WAIT && top.cache_L2.flush == 0) begin
-				cnt <= cnt + 1; 
-			end 
-			else if(state == HIT) begin
-				cnt <= 0;
-				idle_cnt <= 0;
-			end
-			else if(state == IDLE && top.cache_L2.flush == 0) begin
-				idle_cnt <= idle_cnt + 1;
-			end
-			else begin 
-				cnt <= cnt;
-			end
-        end
-    end
-
-
-    always_comb begin
-    	next_state = IDLE;
-        case (state)
-            IDLE: begin
-                if(top.cpu1.controller_and_cache.cache_hit == 2'b01 && top.bus_ctrl.cache_hit_out1 == 2'b11 && top.cpu1.controller_and_cache.mask_in == 3'b010 && top.cache_L2.flush == 0) begin   // MISS in L1 and L2
-                    next_state = WAIT;
-                end         
-                else begin                       
-                    next_state = IDLE;
-                end           
-            end
-
-            WAIT : begin
-			if(idle_cnt == 1) begin 
-				if(top.cache_L2.flush == 0) begin
-		            if(top.cpu1.controller_and_cache.cache_hit == 2'b10) begin 
-		                next_state = HIT;
-		            end
-		            else begin 
-		                next_state = WAIT;
-		            end
-				end
-				else begin
-					  next_state = WAIT;
-				end
-			end 
-			else begin
-				next_state = IDLE; 
-			end
-
-            end
-
-			HIT : begin
-				 next_state = IDLE;
-			end
-
-      endcase    
-    end
-
 
 	always_ff @(negedge clk) begin
 		if(reset) begin
@@ -243,9 +141,6 @@ module ref_model_top
 		
 		end
 	end
-	
-	logic [31:0] past_bus_data_in_pos;
-	logic [31:0] past_bus_data_in_neg;
 
 	always_ff @(posedge clk) begin
 		if(reset) begin
@@ -729,16 +624,6 @@ module ref_model_top
 		top.dmem.memory[{$past(top.dmem.addr[31:2]),2'b00}] == $past(top.cache_L2.data_to_dmem);	
 	endproperty
 	
-/*
-	property load_from_dmem_to_core;
-		load_from_dmem_flag |=> flopped_data_from_dmem[2] == top.cpu1.rf.registerfile[flopped_rf_for_load_miss];
-	endproperty
-*/
-
-	property load_from_dmem_to_core;
-		state == HIT && cnt == 2|-> flopped_data_from_dmem[2] == top.cpu1.rf.registerfile[flopped_rf_for_load_miss];
-	endproperty
-
 	property lru_check;
 		top.cache_L2.cache_memory_L2[fvar_specific_addr[8:0]][0].valid == 1 && top.cache_L2.cache_memory_L2[fvar_specific_addr[8:0]][1].valid == 1 |->
 		top.cache_L2.cache_memory_L2[fvar_specific_addr[8:0]][0].lru ^ top.cache_L2.cache_memory_L2[fvar_specific_addr[8:0]][1].lru; 
